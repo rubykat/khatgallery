@@ -1,0 +1,14 @@
+<todo version="0.1.19">
+    <note priority="medium" time="1145747538" done="1146698960">
+        get basic album working
+    </note>
+    <note priority="medium" time="1146698979" done="1146874872">
+        get meta-data working
+    </note>
+    <note priority="medium" time="1158308744" done="1158382228">
+        improve the "new files only" algorithm
+    </note>
+    <note priority="medium" time="1158309169">
+        documentation for plugin writers
+    </note>
+</todo>
