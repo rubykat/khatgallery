@@ -10,11 +10,11 @@ kg_image_info - Check what meta-information is in an image.
 
 =head1 VERSION
 
-This describes version B<0.03> of kg_image_info.
+This describes version B<0.10> of kg_image_info.
 
 =cut
 
-our $VERSION = '0.03';
+our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 

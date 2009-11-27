@@ -20,14 +20,14 @@ my $builder = Module::Build->new(
 	'File::stat' => 1.0,
 	'YAML' => 0.35,
 	'Image::Info' => 1.16,
-	'Image::Magick' => 6.2,
+	'Image::Magick' => 0,
 
 	},
     build_requires => {
         'Test::More' => 0,
     },
     script_files => [qw(scripts/khatgallery scripts/kg_image_info)],
-    create_makefile_pl => 'passthrough',
+    create_makefile_pl => 'traditional',
 #    add_to_cleanup      => [ 'khatgallery-*' ],
 
 );
