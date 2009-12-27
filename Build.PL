@@ -19,7 +19,7 @@ my $builder = Module::Build->new(
 	'Cwd' => 3.0,
 	'File::stat' => 1.0,
 	'YAML' => 0.35,
-	'Image::Info' => 1.16,
+	'Image::ExifTool' => 0,
 	'Image::Magick' => 0,
 
 	},

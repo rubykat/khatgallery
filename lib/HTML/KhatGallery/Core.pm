@@ -42,7 +42,7 @@ use File::Spec;
 use Cwd;
 use File::stat;
 use YAML qw(Dump LoadFile);
-use Image::Info qw(image_info dim);
+use Image::ExifTool;
 
 =head1 CLASS METHODS
 
@@ -883,7 +883,8 @@ sub make_thumbnail {
 	mkdir $dir_state->{abs_thumbdir};
     }
 
-    my ($x, $y) = dim($img_state->{info});
+    my $x = $img_state->{info}->{ImageWidth};
+    my $y = $img_state->{info}->{ImageHeight};
     if (!$x or !$y)
     {
 	warn "dimensions of " . $img_state->{abs_img} . " undefined -- faking it";
@@ -907,7 +908,8 @@ sub make_thumbnail {
     {
 	$command = "convert -geometry \"${newx}x${newy}\>\" \"$img_state->{abs_img}\" \"$thumb_file\"";
     }
-    system($command);
+    system($command) == 0
+	or die "$command failed";
     
 } # make_thumbnail
 
@@ -1685,8 +1687,8 @@ sub make_image_content {
     }
     my @out = ();
     push @out, "<div class=\"image\">\n";
-    my $width = $img_state->{info}->{width};
-    my $height = $img_state->{info}->{height};
+    my $width = $img_state->{info}->{ImageWidth};
+    my $height = $img_state->{info}->{ImageHeight};
     push @out, "<img src=\"$img_url\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
     push @out, "<p class=\"caption\">$caption</p>\n";
     push @out, "</div>\n";
@@ -1846,7 +1848,7 @@ sub get_image_info {
     my $self = shift;
     my $img_file = shift;
 
-    my $info = image_info($img_file);
+    my $info = Image::ExifTool::ImageInfo($img_file);
     # add the basename
     my ($basename, $path, $suffix) = fileparse($img_file, qr/\.[^.]*/);
     $info->{file_basename} = $basename;

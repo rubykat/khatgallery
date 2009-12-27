@@ -330,6 +330,7 @@ sub process_args ($) {
 	       'per_page=i',
 	       'thumbdir=s',
 	       'thumb_geom=s',
+	       'captions_file=s',
 	       'page_template|template=s',
 	       'force_html!',
 	       'force_images!',
