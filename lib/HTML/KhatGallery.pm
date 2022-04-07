@@ -1,5 +1,5 @@
 package HTML::KhatGallery;
-
+# VERSION
 use strict;
 use warnings;
 

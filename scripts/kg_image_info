@@ -1,9 +1,10 @@
 #!/usr/bin/env perl
-
 # vim:ts=8 sw=4 sts=4 ai
 require v5.8.5;
 use strict;
 use warnings;
+
+# VERSION
 
 =head1 NAME
 
