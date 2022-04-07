@@ -238,6 +238,7 @@ sub init {
 	$self->{top_out_dir} = $self->{top_dir};
     }
     $self->{top_out_dir} = File::Spec->rel2abs($self->{top_out_dir});
+    $self->{top_out_base} = basename($self->{top_out_dir});
 
     # trim top_url if it has a trailing slash
     if (defined $self->{top_url})
@@ -994,10 +995,14 @@ sub start_index_page {
     my @out = ();
     push @out, "<div class=\"kgindex\">\n";
 
-    # path array contains basenames from the top dir
-    # down to the current dir
+    # Path array contains basenames from the top dir down to the current dir.
     my @path = split(/[\/\\]/, $dir_state->{dir});
-    unshift @path, $self->{top_base};
+
+    # Note that what we want is the top_out_base and not the top_base
+    # because if they are not the same (because top_out_dir was set)
+    # the salient info is the output directory and not the source directory.
+    unshift @path, $self->{top_out_base};
+
     # we want to create relative links to all the dirs
     # above the current one, so work backwards
     my %uplinks = ();
@@ -1253,8 +1258,6 @@ sub make_index_style {
     margin: 10px;
 }
 .thumb {
-    /* width: ${thumb_area_width}px; */
-    /* height: ${thumb_area_height}px; */
     overflow: auto;
     font-size: small;
 }
@@ -1508,10 +1511,10 @@ sub start_image_page {
     my @out = ();
     push @out, "<div class=\"kgimage\">\n";
 
-    # path array contains basenames from the top dir
-    # down to the current dir
+    # Path array contains basenames from the top dir
+    # down to the current dir.
     my @path = split(/[\/\\]/, $dir_state->{dir});
-    unshift @path, $self->{top_base};
+    unshift @path, $self->{top_out_base};
     # we want to create relative links to all the dirs
     # including the current one, so work backwards
     my %uplinks = ();
