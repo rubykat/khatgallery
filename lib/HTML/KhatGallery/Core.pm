@@ -436,8 +436,8 @@ sub init_settings {
     $dir_state->{abs_thumbdir} = File::Spec->catdir($dir_state->{abs_out_dir},
 	$self->{thumbdir});
 
-    # reset the per-directory force_html flag
-    $dir_state->{force_html} = 0;
+    # reset the per-directory redo_html flag
+    $dir_state->{redo_html} = 0;
 
 } # init_settings
 
@@ -643,12 +643,12 @@ sub make_index_page {
     # files because we don't know which index file it will appear in,
     # and we need to re-make the other HTML files because
     # we need to re-generate the prev/next links
-    $dir_state->{force_html} = $self->images_added_or_gone($dir_state);
+    $dir_state->{redo_html} = $self->index_needs_rebuilding($dir_state);
 
     # if forcing HTML, delete the old index pages
     # just in case we are going to have fewer pages
     # this time around
-    if ($self->{force_html} or $dir_state->{force_html})
+    if ($self->{force_html} or $dir_state->{redo_html})
     {
 	foreach my $if (@{$dir_state->{index_files}})
 	{
@@ -866,7 +866,8 @@ sub make_thumbnail {
     my $thumb_file = $self->get_thumbnail_name(
 	dir_state=>$dir_state, image=>$img_state->{cur_img},
 	type=>'file');
-    if (-f $thumb_file and !$self->{force_images})
+    if (!$self->need_to_generate_image($dir_state, $img_state,
+        check_image=>$thumb_file))
     {
 	return;
     }
@@ -922,7 +923,7 @@ sub make_image_page {
 						  type=>'file');
     if (-f $img_page_file
 	and !$self->{force_html}
-	and !$dir_state->{force_html})
+	and !$dir_state->{redo_html})
     {
 	return;
     }
@@ -1740,13 +1741,31 @@ EOT
     return join('', @out);
 } # make_image_style
 
-=head2 images_added_or_gone
+=head2 need_to_generate_image
+
+Check if a thumbnail needs to be made (or rebuilt).
+
+=cut
+sub need_to_generate_image {
+    my $self = shift;
+    my $dir_state = shift;
+    my $img_state = shift;
+    my %args = @_;
+
+    if (!-f $args{check_image} or $self->{force_images})
+    {
+	return 1;
+    }
+    return 0;
+} # need_to_generate_image
+
+=head2 index_needs_rebuilding
 
 Check to see if there are any new (or deleted) images in this
 directory.
 
 =cut
-sub images_added_or_gone {
+sub index_needs_rebuilding {
     my $self = shift;
     my $dir_state = shift;
 
@@ -1827,7 +1846,7 @@ sub images_added_or_gone {
     }
 
     return 0;
-} # images_added_or_gone
+} # index_needs_rebuilding
 
 =head2 get_image_info
 
