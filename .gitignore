@@ -1,0 +1,14 @@
+# generated files
+META.yml
+Makefile.PL
+Makefile
+
+# distro files
+khatgallery-*
+
+# Build files
+blib/
+Build
+_build/
+.build/
+
