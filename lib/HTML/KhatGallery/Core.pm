@@ -1243,7 +1243,7 @@ sub make_index_style {
     my $thumb_area_height = ($self->{thumb_height} * 1.5) + 20;
     push @out, <<EOT;
 <style type="text/css">
-.images {
+.subdir, .images {
     display: flex;
     flex-wrap: wrap;
 }
