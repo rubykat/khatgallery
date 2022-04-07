@@ -1,18 +1,11 @@
 package HTML::KhatGallery::Core;
+
 use strict;
 use warnings;
 
 =head1 NAME
 
 HTML::KhatGallery::Core - the core methods for HTML::KhatGallery
-
-=head1 VERSION
-
-This describes version B<0.10> of HTML::KhatGallery::Core.
-
-=cut
-
-our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
