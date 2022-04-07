@@ -1253,8 +1253,8 @@ sub make_index_style {
     margin: 10px;
 }
 .thumb {
-    width: ${thumb_area_width}px;
-    height: ${thumb_area_height}px;
+    /* width: ${thumb_area_width}px; */
+    /* height: ${thumb_area_height}px; */
     overflow: auto;
     font-size: small;
 }
