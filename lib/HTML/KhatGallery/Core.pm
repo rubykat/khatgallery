@@ -1080,7 +1080,7 @@ sub make_index_prev_next {
 	{
 	    my $iurl = $self->get_index_pagename(dir_state=>$dir_state,
 						 page=>$page - 1, get_filename=>0);
-	    push @out, "<a href=\"${iurl}\">$label</a> ";
+	    push @out, "<span class=\"pagelink prev\"><a href=\"${iurl}\">$label</a></span> ";
 	}
 
 	# pages, but only if more than two
@@ -1090,13 +1090,13 @@ sub make_index_prev_next {
 	    {
 		if ($page == $i)
 		{
-		    push @out, " [$i] ";
+		    push @out, " <span class=\"pagelink curr\">[$i]</span> ";
 		}
 		else
 		{
 		    my $iurl = $self->get_index_pagename(dir_state=>$dir_state,
 							 page=>$i, get_filename=>0);
-		    push @out, " [<a href=\"${iurl}\">$i</a>] ";
+		    push @out, " <span class=\"pagelink pagenum\"><a href=\"${iurl}\">$i</a></span> ";
 		}
 	    }
 	}
@@ -1105,7 +1105,7 @@ sub make_index_prev_next {
 	{
 	    my $iurl = $self->get_index_pagename(dir_state=>$dir_state,
 						 page=>$page + 1, get_filename=>0);
-	    push @out, " <a href=\"${iurl}\">$label</a>";
+	    push @out, " <span class=\"pagelink next\"><a href=\"${iurl}\">$label</a></span>";
 	}
 	push @out, "</p>\n";
     }
@@ -1248,7 +1248,7 @@ sub make_index_style {
     my $thumb_area_height = ($self->{thumb_height} * 1.5) + 20;
     push @out, <<EOT;
 <style type="text/css">
-.subdir, .images {
+.subdir, .images, .prevnext {
     display: flex;
     flex-wrap: wrap;
 }
@@ -1539,7 +1539,7 @@ sub start_image_page {
     push @out, '<h1>';
     push @out, $img_state->{cur_img};
     push @out, "</h1>\n";
-    push @out, '<p>';
+    push @out, '<p class="breadcrumb">';
     push @out, join(' > ', @breadcrumb);
     push @out, "</p>\n";
 
@@ -1599,10 +1599,9 @@ sub make_image_prev_next {
     my @out = ();
     if ($dir_state->{files} > 1)
     {
-	push @out, '<table class="prevnext">';
-	push @out, "<tr>\n";
+	push @out, '<div class="prevnext">';
 	# prev
-	push @out, "<td class=\"prev\">";
+	push @out, "<span class=\"prev\">";
 	my $label = '&lt; - prev';
 	my $iurl;
 	my $turl;
@@ -1625,14 +1624,14 @@ sub make_image_prev_next {
 		image=>$img_state->{images}->[$#{$img_state->{images}}],
 					      type=>'sibling');
 	}
-	push @out, "<a href=\"${iurl}\">$label</a> ";
+	push @out, "<span class=\"pagelink\"><a href=\"${iurl}\">$label</a></span> ";
 	if ($args{use_thumb})
 	{
-	    push @out, "<a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a> ";
+	    push @out, "<span class=\"thumb\"><a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a></span> ";
 	}
-	push @out, "</td>";
+	push @out, "</span>";
 
-	push @out, "<td class=\"next\">";
+	push @out, "<span class=\"next\">";
 	$label = 'next -&gt;';
 	if (($img_num+1) < @{$img_state->{images}})
 	{
@@ -1655,12 +1654,11 @@ sub make_image_prev_next {
 	}
 	if ($args{use_thumb})
 	{
-	    push @out, "<a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a> ";
+	    push @out, "<span class=\"thumb\"><a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a></span> ";
 	}
-	push @out, " <a href=\"${iurl}\">$label</a>";
-	push @out, "</td>";
-	push @out, "\n</tr>";
-	push @out, "</table>\n";
+	push @out, " <span class=\"pagelink\"><a href=\"${iurl}\">$label</a></span>";
+	push @out, "</span>";
+	push @out, "</div>\n";
     }
 
     return join('', @out);
@@ -1733,14 +1731,10 @@ sub make_image_style {
     margin-left: auto;
     margin-right: auto;
 }
-table.prevnext {
+.prevnext {
+    display: flex;
     width: 100%;
-}
-td.prev {
-    text-align: left;
-}
-td.next {
-    text-align: right;
+    justify-content: space-between;
 }
 .caption {
     white-space: pre-line;
