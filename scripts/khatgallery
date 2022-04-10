@@ -20,7 +20,8 @@ khatgallery [ --captions_file I<filename> ] [ --debug_level I<num> ]
 [ --dir_match I<string> ] [ --force_html ] [ --force_images ]
 [ --image_match I<string> ] [ --options I<filename> ]
 [ --page_template I<filename> ] [ --per_page I<num> ]
-{ --plugins I<PluginName> } { --meta I<string> } [ --thumbdir I<string> ]
+{ --plugins I<PluginName> } { --plugopt I<name>=I<value> }
+{ --meta I<string> } [ --thumbdir I<string> ]
 [ --thumb_geom I<num>xI<num> ] [ --top_out_dir I<directory> ]
 [ --top_url I<url> ] I<directory>
 
@@ -153,6 +154,10 @@ The number of images to display per index page.
 
 Give a KhatGallery plugin to use.  This option can be repeated for
 additional plugins.
+
+=item --plugopt I<name>=I<value>
+
+Additional options to pass to plugins.
 
 =item --thumbdir I<string>
 
@@ -321,6 +326,7 @@ sub process_args ($) {
 	       'manpage',
 	       'clean',
 	       'plugins=s@',
+	       'plugopt=s%',
 	       'per_page=i',
 	       'thumbdir=s',
 	       'thumb_geom=s',
