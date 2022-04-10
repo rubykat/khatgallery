@@ -32,7 +32,7 @@ Other functions can be added or overridden by plugin modules.
 use POSIX qw(ceil);
 use File::Basename;
 use File::Spec;
-use Cwd;
+use Cwd qw(realpath);
 use File::stat;
 use YAML qw(Dump LoadFile);
 use Image::ExifTool;
@@ -418,8 +418,10 @@ sub init_settings {
     my $self = shift;
     my $dir_state = shift;
 
-    $dir_state->{abs_dir} = File::Spec->catdir($self->{top_dir}, $dir_state->{dir});
-    $dir_state->{abs_out_dir} = File::Spec->catdir($self->{top_out_dir}, $dir_state->{dir});
+    $dir_state->{abs_dir} = File::Spec->catdir(
+        realpath($self->{top_dir}), $dir_state->{dir});
+    $dir_state->{abs_out_dir} = File::Spec->catdir(
+        realpath($self->{top_out_dir}), $dir_state->{dir});
     my @path = File::Spec->splitdir($dir_state->{abs_dir});
     if ($dir_state->{dir})
     {

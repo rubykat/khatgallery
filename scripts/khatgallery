@@ -322,7 +322,7 @@ sub process_args ($) {
     my $op = new Getopt::Long::Parser;
     $op->configure(qw(auto_version auto_help));
     $op->getoptions($data_ref,
-	       'verbose!',
+	       'verbose+',
 	       'manpage',
 	       'clean',
 	       'plugins=s@',
