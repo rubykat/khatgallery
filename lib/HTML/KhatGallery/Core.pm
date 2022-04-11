@@ -1686,11 +1686,11 @@ sub make_image_content {
 	$img_url = $dir_state->{dir_url} . '/' . $img_name;
     }
     my @out = ();
-    push @out, "<div class=\"image\">\n";
+    push @out, "<div class=\"image\" id=\"image">\n";
     my $width = $img_state->{info}->{ImageWidth};
     my $height = $img_state->{info}->{ImageHeight};
     push @out, "<img src=\"$img_url\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
-    push @out, "<p class=\"caption\">$caption</p>\n";
+    push @out, "<p class=\"caption\" id=\"caption\">$caption</p>\n";
     push @out, "</div>\n";
     return join('', @out);
 } # make_image_content
