@@ -1812,6 +1812,7 @@ sub index_needs_rebuilding {
         }
         else
         {
+            $self->debug(1, "GONE DIR: $dsd");
 	    $destdir_has_src{$dsd} = 0;
             return 1;
         }
@@ -1821,6 +1822,7 @@ sub index_needs_rebuilding {
     {
 	if (!$dir_exists)
 	{
+            $self->debug(1, "NEW DIR: $key");
 	    return 1;
 	}
     }
