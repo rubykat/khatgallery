@@ -16,7 +16,7 @@ khatgallery --help | --manpage | --version
 
 khatgallery --clean I<directory>
 
-khatgallery [ --captions_file I<filename> ] [ --debug_level I<num> ]
+khatgallery [ --captions_file I<filename> ] [ --debug_level I<num> | --debug ]
 [ --dir_match I<string> ] [ --force_html ] [ --force_images ]
 [ --image_match I<string> ] [ --options I<filename> ]
 [ --page_template I<filename> ] [ --per_page I<num> ]
@@ -306,6 +306,7 @@ sub init_data ($) {
 
     $data_ref->{manpage} = 0;
     $data_ref->{verbose} = 1;
+    $data_ref->{debug_level} = 0;
 } # init_data
 
 sub process_args ($) {
@@ -322,7 +323,7 @@ sub process_args ($) {
     my $op = new Getopt::Long::Parser;
     $op->configure(qw(auto_version auto_help));
     $op->getoptions($data_ref,
-	       'verbose+',
+	       'verbose!',
 	       'manpage',
 	       'clean',
 	       'plugins=s@',
@@ -335,7 +336,7 @@ sub process_args ($) {
 	       'force_html!',
 	       'force_images!',
 	       'meta=s@',
-	       'debug_level=i',
+	       'debug_level|debug+',
 	       'dir_actions=s@',
 	       'clean_actions=s@',
 	       'image_actions=s@',
