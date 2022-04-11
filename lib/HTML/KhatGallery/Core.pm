@@ -1689,7 +1689,7 @@ sub make_image_content {
     push @out, "<div class=\"image\" id=\"image\">\n";
     my $width = $img_state->{info}->{ImageWidth};
     my $height = $img_state->{info}->{ImageHeight};
-    push @out, "<img src=\"$img_url\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
+    push @out, "<img src=\"$img_url\" title=\"$img_name\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
     push @out, "<p class=\"caption\" id=\"caption\">$caption</p>\n";
     push @out, "</div>\n";
     return join('', @out);
