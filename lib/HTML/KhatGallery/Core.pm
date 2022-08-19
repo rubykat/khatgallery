@@ -1,18 +1,11 @@
 package HTML::KhatGallery::Core;
+# VERSION
 use strict;
 use warnings;
 
 =head1 NAME
 
 HTML::KhatGallery::Core - the core methods for HTML::KhatGallery
-
-=head1 VERSION
-
-This describes version B<0.10> of HTML::KhatGallery::Core.
-
-=cut
-
-our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
@@ -39,7 +32,7 @@ Other functions can be added or overridden by plugin modules.
 use POSIX qw(ceil);
 use File::Basename;
 use File::Spec;
-use Cwd;
+use Cwd qw(realpath);
 use File::stat;
 use YAML qw(Dump LoadFile);
 use Image::ExifTool;
@@ -245,6 +238,7 @@ sub init {
 	$self->{top_out_dir} = $self->{top_dir};
     }
     $self->{top_out_dir} = File::Spec->rel2abs($self->{top_out_dir});
+    $self->{top_out_base} = basename($self->{top_out_dir});
 
     # trim top_url if it has a trailing slash
     if (defined $self->{top_url})
@@ -355,7 +349,7 @@ sub do_dir_actions {
 	my $action = shift @actions;
 	last if $state{stop};
 	$state{action} = $action;
-	$self->debug(1, "action: $action");
+	$self->debug(2, "action: $action");
 	$self->$action(\%state);
     }
     use strict qw(subs refs);
@@ -394,7 +388,7 @@ sub do_image_actions {
 	    my $action = shift @{$images_state{image_actions}};
 	    last if $images_state{stop};
 	    $images_state{action} = $action;
-	    $self->debug(1, "image_action: $action");
+	    $self->debug(2, "image_action: $action");
 	    $self->$action($dir_state,
 		\%images_state);
 	}
@@ -424,8 +418,10 @@ sub init_settings {
     my $self = shift;
     my $dir_state = shift;
 
-    $dir_state->{abs_dir} = File::Spec->catdir($self->{top_dir}, $dir_state->{dir});
-    $dir_state->{abs_out_dir} = File::Spec->catdir($self->{top_out_dir}, $dir_state->{dir});
+    $dir_state->{abs_dir} = File::Spec->catdir(
+        realpath($self->{top_dir}), $dir_state->{dir});
+    $dir_state->{abs_out_dir} = File::Spec->catdir(
+        realpath($self->{top_out_dir}), $dir_state->{dir});
     my @path = File::Spec->splitdir($dir_state->{abs_dir});
     if ($dir_state->{dir})
     {
@@ -443,8 +439,8 @@ sub init_settings {
     $dir_state->{abs_thumbdir} = File::Spec->catdir($dir_state->{abs_out_dir},
 	$self->{thumbdir});
 
-    # reset the per-directory force_html flag
-    $dir_state->{force_html} = 0;
+    # reset the per-directory redo_html flag
+    $dir_state->{redo_html} = 0;
 
 } # init_settings
 
@@ -650,12 +646,12 @@ sub make_index_page {
     # files because we don't know which index file it will appear in,
     # and we need to re-make the other HTML files because
     # we need to re-generate the prev/next links
-    $dir_state->{force_html} = $self->images_added_or_gone($dir_state);
+    $dir_state->{redo_html} = $self->index_needs_rebuilding($dir_state);
 
     # if forcing HTML, delete the old index pages
     # just in case we are going to have fewer pages
     # this time around
-    if ($self->{force_html} or $dir_state->{force_html})
+    if ($self->{force_html} or $dir_state->{redo_html})
     {
 	foreach my $if (@{$dir_state->{index_files}})
 	{
@@ -743,7 +739,7 @@ sub clean_thumb_dir {
 
     my $dir = File::Spec->catdir($dir_state->{abs_out_dir}, $self->{thumbdir});
     my @pics = @{$dir_state->{files}};
-    $self->debug(2, "dir: $dir");
+    $self->debug(2, "cleaning dir: $dir");
 
     return unless -d $dir;
 
@@ -873,7 +869,8 @@ sub make_thumbnail {
     my $thumb_file = $self->get_thumbnail_name(
 	dir_state=>$dir_state, image=>$img_state->{cur_img},
 	type=>'file');
-    if (-f $thumb_file and !$self->{force_images})
+    if (!$self->need_to_generate_image($dir_state, $img_state,
+        check_image=>$thumb_file))
     {
 	return;
     }
@@ -883,30 +880,21 @@ sub make_thumbnail {
 	mkdir $dir_state->{abs_thumbdir};
     }
 
-    my $x = $img_state->{info}->{ImageWidth};
-    my $y = $img_state->{info}->{ImageHeight};
-    if (!$x or !$y)
-    {
-	warn "dimensions of " . $img_state->{abs_img} . " undefined -- faking it";
-	print STDERR Dump($img_state);
-	print STDERR "========================\n";
-	$x = 1024;
-	$y = 1024;
-    }
-    
-    my $pixels = $x * $y;
-    my $newx = int($x / (sqrt($x * $y) / sqrt($self->{pixelcount})));
-    my $newy = int($y / (sqrt($x * $y) / sqrt($self->{pixelcount})));
-    my $newpix = $newx * $newy;
     my $command = '';
     if ($img_state->{cur_img} =~ /\.gif$/)
     {
 	# in case this is an animated gif, get the first frame only
-	$command = "convert -geometry \"${newx}x${newy}\>\" \"$img_state->{abs_img}\[0\]\" \"$thumb_file\"";
+        $command = sprintf('convert -geometry "%d@>" %s %s',
+            $self->{pixelcount},
+            $img_state->{abs_img}[0],
+            $thumb_file);
     }
     else
     {
-	$command = "convert -geometry \"${newx}x${newy}\>\" \"$img_state->{abs_img}\" \"$thumb_file\"";
+        $command = sprintf('convert -geometry "%d@>" %s %s',
+            $self->{pixelcount},
+            $img_state->{abs_img},
+            $thumb_file);
     }
     system($command) == 0
 	or die "$command failed";
@@ -929,7 +917,7 @@ sub make_image_page {
 						  type=>'file');
     if (-f $img_page_file
 	and !$self->{force_html}
-	and !$dir_state->{force_html})
+	and !$dir_state->{redo_html})
     {
 	return;
     }
@@ -1000,10 +988,14 @@ sub start_index_page {
     my @out = ();
     push @out, "<div class=\"kgindex\">\n";
 
-    # path array contains basenames from the top dir
-    # down to the current dir
+    # Path array contains basenames from the top dir down to the current dir.
     my @path = split(/[\/\\]/, $dir_state->{dir});
-    unshift @path, $self->{top_base};
+
+    # Note that what we want is the top_out_base and not the top_base
+    # because if they are not the same (because top_out_dir was set)
+    # the salient info is the output directory and not the source directory.
+    unshift @path, $self->{top_out_base};
+
     # we want to create relative links to all the dirs
     # above the current one, so work backwards
     my %uplinks = ();
@@ -1081,7 +1073,7 @@ sub make_index_prev_next {
 	{
 	    my $iurl = $self->get_index_pagename(dir_state=>$dir_state,
 						 page=>$page - 1, get_filename=>0);
-	    push @out, "<a href=\"${iurl}\">$label</a> ";
+	    push @out, "<span class=\"pagelink prev\"><a href=\"${iurl}\">$label</a></span> ";
 	}
 
 	# pages, but only if more than two
@@ -1091,13 +1083,13 @@ sub make_index_prev_next {
 	    {
 		if ($page == $i)
 		{
-		    push @out, " [$i] ";
+		    push @out, " <span class=\"pagelink curr\">[$i]</span> ";
 		}
 		else
 		{
 		    my $iurl = $self->get_index_pagename(dir_state=>$dir_state,
 							 page=>$i, get_filename=>0);
-		    push @out, " [<a href=\"${iurl}\">$i</a>] ";
+		    push @out, " <span class=\"pagelink pagenum\"><a href=\"${iurl}\">$i</a></span> ";
 		}
 	    }
 	}
@@ -1106,7 +1098,7 @@ sub make_index_prev_next {
 	{
 	    my $iurl = $self->get_index_pagename(dir_state=>$dir_state,
 						 page=>$page + 1, get_filename=>0);
-	    push @out, " <a href=\"${iurl}\">$label</a>";
+	    push @out, " <span class=\"pagelink next\"><a href=\"${iurl}\">$label</a></span>";
 	}
 	push @out, "</p>\n";
     }
@@ -1249,15 +1241,16 @@ sub make_index_style {
     my $thumb_area_height = ($self->{thumb_height} * 1.5) + 20;
     push @out, <<EOT;
 <style type="text/css">
+.subdir, .images, .prevnext {
+    display: flex;
+    flex-wrap: wrap;
+}
 .item {
-    float: left;
     vertical-align: middle;
     text-align: center;
     margin: 10px;
 }
 .thumb {
-    width: ${thumb_area_width}px;
-    height: ${thumb_area_height}px;
     overflow: auto;
     font-size: small;
 }
@@ -1511,10 +1504,10 @@ sub start_image_page {
     my @out = ();
     push @out, "<div class=\"kgimage\">\n";
 
-    # path array contains basenames from the top dir
-    # down to the current dir
+    # Path array contains basenames from the top dir
+    # down to the current dir.
     my @path = split(/[\/\\]/, $dir_state->{dir});
-    unshift @path, $self->{top_base};
+    unshift @path, $self->{top_out_base};
     # we want to create relative links to all the dirs
     # including the current one, so work backwards
     my %uplinks = ();
@@ -1539,7 +1532,7 @@ sub start_image_page {
     push @out, '<h1>';
     push @out, $img_state->{cur_img};
     push @out, "</h1>\n";
-    push @out, '<p>';
+    push @out, '<p class="breadcrumb">';
     push @out, join(' > ', @breadcrumb);
     push @out, "</p>\n";
 
@@ -1599,10 +1592,9 @@ sub make_image_prev_next {
     my @out = ();
     if ($dir_state->{files} > 1)
     {
-	push @out, '<table class="prevnext">';
-	push @out, "<tr>\n";
+	push @out, '<div class="prevnext">';
 	# prev
-	push @out, "<td class=\"prev\">";
+	push @out, "<span class=\"prev\">";
 	my $label = '&lt; - prev';
 	my $iurl;
 	my $turl;
@@ -1625,14 +1617,14 @@ sub make_image_prev_next {
 		image=>$img_state->{images}->[$#{$img_state->{images}}],
 					      type=>'sibling');
 	}
-	push @out, "<a href=\"${iurl}\">$label</a> ";
+	push @out, "<span class=\"pagelink\"><a href=\"${iurl}\">$label</a></span> ";
 	if ($args{use_thumb})
 	{
-	    push @out, "<a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a> ";
+	    push @out, "<span class=\"thumb\"><a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a></span> ";
 	}
-	push @out, "</td>";
+	push @out, "</span>";
 
-	push @out, "<td class=\"next\">";
+	push @out, "<span class=\"next\">";
 	$label = 'next -&gt;';
 	if (($img_num+1) < @{$img_state->{images}})
 	{
@@ -1655,12 +1647,11 @@ sub make_image_prev_next {
 	}
 	if ($args{use_thumb})
 	{
-	    push @out, "<a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a> ";
+	    push @out, "<span class=\"thumb\"><a href=\"${iurl}\"><img src=\"$turl\" alt=\"$label\"/></a></span> ";
 	}
-	push @out, " <a href=\"${iurl}\">$label</a>";
-	push @out, "</td>";
-	push @out, "\n</tr>";
-	push @out, "</table>\n";
+	push @out, " <span class=\"pagelink\"><a href=\"${iurl}\">$label</a></span>";
+	push @out, "</span>";
+	push @out, "</div>\n";
     }
 
     return join('', @out);
@@ -1686,11 +1677,11 @@ sub make_image_content {
 	$img_url = $dir_state->{dir_url} . '/' . $img_name;
     }
     my @out = ();
-    push @out, "<div class=\"image\">\n";
+    push @out, "<div class=\"image\" id=\"image\">\n";
     my $width = $img_state->{info}->{ImageWidth};
     my $height = $img_state->{info}->{ImageHeight};
-    push @out, "<img src=\"$img_url\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
-    push @out, "<p class=\"caption\">$caption</p>\n";
+    push @out, "<img src=\"$img_url\" title=\"$img_name\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
+    push @out, "<p class=\"caption\" id=\"caption\">$caption</p>\n";
     push @out, "</div>\n";
     return join('', @out);
 } # make_image_content
@@ -1733,44 +1724,114 @@ sub make_image_style {
     margin-left: auto;
     margin-right: auto;
 }
-table.prevnext {
+.prevnext {
+    display: flex;
     width: 100%;
+    justify-content: space-between;
 }
-td.prev {
-    text-align: left;
-}
-td.next {
-    text-align: right;
+.caption {
+    white-space: pre-line;
 }
 </style>
 EOT
     return join('', @out);
 } # make_image_style
 
-=head2 images_added_or_gone
+=head2 need_to_generate_image
 
-Check to see if there are any new (or deleted) images in this
-directory.
+Check if a thumbnail needs to be made (or rebuilt).
 
 =cut
-sub images_added_or_gone {
+sub need_to_generate_image {
+    my $self = shift;
+    my $dir_state = shift;
+    my $img_state = shift;
+    my %args = @_;
+
+    if (!-f $args{check_image} or $self->{force_images})
+    {
+	return 1;
+    }
+    return 0;
+} # need_to_generate_image
+
+=head2 index_needs_rebuilding
+
+Check to see if there are any new (or deleted) images or directories
+in this directory.
+
+=cut
+sub index_needs_rebuilding {
     my $self = shift;
     my $dir_state = shift;
 
-    my $dir = File::Spec->catdir($dir_state->{abs_out_dir}, $self->{thumbdir});
+    # ------- Subdirs -------------
+    # Need to check if any of the subdirs are new or deleted
+ 
+    my @subdirs = @{$dir_state->{subdirs}};
+    my @dest_subdirs = ();
+    my $dirh;
+    opendir($dirh,$dir_state->{abs_out_dir});
+    while (my $fn = readdir($dirh))
+    {
+	my $abs_fn = File::Spec->catfile($dir_state->{abs_out_dir}, $fn);
+	if ($fn =~ /^\./ or $fn eq $self->{thumbdir})
+	{
+	    # skip
+	}
+	elsif (-d $abs_fn)
+	{
+	    push @dest_subdirs, $fn;
+	}
+    }
+    closedir($dirh);
+
+    my %destdir_has_src = ();
+    my %srcdir_has_dest = ();
+    # initialise to false
+    foreach my $sd ( @subdirs )
+    {
+	$srcdir_has_dest{$sd} = 0;
+    }
+    # Are there dest-dirs without src-dirs?
+    foreach my $dsd ( @dest_subdirs )
+    {
+        if (exists $srcdir_has_dest{$dsd})
+        {
+            $srcdir_has_dest{$dsd} = 1;
+            $destdir_has_src{$dsd} = 1;
+        }
+        else
+        {
+            $self->debug(1, "GONE DIR: $dsd");
+	    $destdir_has_src{$dsd} = 0;
+            return 1;
+        }
+    }
+    # Are there src-dirs without dest-dirs? 
+    while (my ($key, $dir_exists) = each(%srcdir_has_dest))
+    {
+	if (!$dir_exists)
+	{
+            $self->debug(1, "NEW DIR: $key");
+	    return 1;
+	}
+    }
+
+    # --------- Thumbnail Directory ----------
+    my $thumb_dir = File::Spec->catdir($dir_state->{abs_out_dir}, $self->{thumbdir});
     my @pics = @{$dir_state->{files}};
-    $self->debug(2, "dir: $dir");
+    $self->debug(2, "dir: $thumb_dir");
 
     # if the thumbnail directory doesn't exist, then either all images
     # are new, or we don't have any images in this directory
-    if (!-d $dir)
+    if (!-d $thumb_dir)
     {
 	return (@pics ? 1 : 0);
     }
 
     # Read the thumbnail directory
-    my $dirh;
-    opendir($dirh,$dir);
+    opendir($dirh,$thumb_dir);
     my @files = grep(!/^\.{1,2}$/, readdir($dirh));
     closedir($dirh);
 
@@ -1800,7 +1861,6 @@ sub images_added_or_gone {
 	    else
 	    {
 		$tn_has_pic{$name} = 0;
-		print "$dir has unused image pages; needs cleaning\n" if $self->{verbose};
 		return 1;
 	    }
 	}
@@ -1818,7 +1878,6 @@ sub images_added_or_gone {
 	    else
 	    {
 		$tn_has_pic{$name} = 0;
-		print "$dir has unused thumbnails; needs cleaning\n" if $self->{verbose};
 		return 1;
 	    }
 	}
@@ -1834,7 +1893,7 @@ sub images_added_or_gone {
     }
 
     return 0;
-} # images_added_or_gone
+} # index_needs_rebuilding
 
 =head2 get_image_info
 

@@ -4,17 +4,11 @@ require v5.8.5;
 use strict;
 use warnings;
 
+# VERSION
+
 =head1 NAME
 
 kg_image_info - Check what meta-information is in an image.
-
-=head1 VERSION
-
-This describes version B<0.10> of kg_image_info.
-
-=cut
-
-our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 

@@ -1,18 +1,11 @@
 package HTML::KhatGallery;
+# VERSION
 use strict;
 use warnings;
 
 =head1 NAME
 
 HTML::KhatGallery - HTML photo album generator.
-
-=head1 VERSION
-
-This describes version B<0.10> of HTML::KhatGallery.
-
-=cut
-
-our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
