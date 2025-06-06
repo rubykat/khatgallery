@@ -279,6 +279,7 @@ sub init {
 	    filter_images
 	    filter_dirs
 	    clean_thumb_dir
+            clean_this_dir
 	    process_subdirs
 	    tidy_up
 	)];
@@ -737,11 +738,11 @@ sub clean_thumb_dir {
     my $self = shift;
     my $dir_state = shift;
 
-    my $dir = File::Spec->catdir($dir_state->{abs_out_dir}, $self->{thumbdir});
+    my $thumb_dir = File::Spec->catdir($dir_state->{abs_out_dir}, $self->{thumbdir});
     my @pics = @{$dir_state->{files}};
-    $self->debug(2, "cleaning dir: $dir");
+    $self->debug(2, "cleaning thumb dir: $thumb_dir");
 
-    return unless -d $dir;
+    return unless -d $thumb_dir;
 
     # store the pics as a hash to make checking easier
     my %pics_hash = ();
@@ -752,7 +753,7 @@ sub clean_thumb_dir {
 
     # Read the thumbnail directory
     my $dirh;
-    opendir($dirh,$dir);
+    opendir($dirh,$thumb_dir);
     my @files = grep(!/^\.{1,2}$/, readdir($dirh));
     closedir($dirh);
 
@@ -781,12 +782,71 @@ sub clean_thumb_dir {
 	}
 	if ($remove) {
 	    print "Remove $remove: $file\n" if $self->{verbose};
-	    my $fullname = File::Spec->catfile($dir, $file);
+	    my $fullname = File::Spec->catfile($thumb_dir, $file);
 	    warn "Couldn't erase [$file]"
 		unless unlink $fullname;
 	}
     } # for each file
+
+    # If the thumbnail dir is empty, it needs to be removed too.
+    $dirh;
+    opendir($dirh,$thumb_dir);
+    @files = readdir($dirh);
+    closedir($dirh);
+
+    if (!@files)
+    {
+        warn "Couldn't erase empty dir [$thumb_dir]"
+            unless rmdir $thumb_dir;
+    }
 } # clean_thumb_dir
+
+=head2 clean_this_dir
+
+Do cleaning of this current directory.
+Remove subdirs which no longer exist.
+
+=cut
+sub clean_this_dir {
+    my $self = shift;
+    my $dir_state = shift;
+
+    $self->debug(2, "cleaning dir: $dir_state->{abs_out_dir}");
+    return unless -d $dir_state->{abs_out_dir};
+
+    # store the dirs as a hash to make checking easier
+    my %dirs_hash = ();
+    foreach my $dir ( @{$dir_state->{subdirs}} )
+    {
+	$dirs_hash{$dir} = 1;
+    }
+
+    my $dh;
+    opendir($dh, $dir_state->{abs_out_dir}) or die "Can't opendir $dir_state->{abs_out_dir}: $!";
+    while (my $fn = readdir($dh))
+    {
+        my $abs_fn = File::Spec->catfile($dir_state->{abs_out_dir}, $fn);
+        if ($fn =~ /^\./ or $fn eq $self->{thumbdir})
+        {
+            # skip
+        }
+	elsif ($fn =~ s/index.*\.html$//)
+        {
+            # skip
+        }
+        elsif (-d $abs_fn)
+        {
+            if (!exists $dirs_hash{$fn})
+            {
+                print "Remove subdir $fn\n" if $self->{verbose};
+                warn "Couldn't erase [$fn]"
+                    unless rmdir $abs_fn;
+            }
+        }
+    }
+    closedir($dh);
+
+} # clean_this_dir
 
 =head2 process_images
 
