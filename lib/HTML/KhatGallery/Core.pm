@@ -789,7 +789,6 @@ sub clean_thumb_dir {
     } # for each file
 
     # If the thumbnail dir is empty, it needs to be removed too.
-    $dirh;
     opendir($dirh,$thumb_dir);
     @files = readdir($dirh);
     closedir($dirh);
@@ -1740,7 +1739,13 @@ sub make_image_content {
     push @out, "<div class=\"image\" id=\"image\">\n";
     my $width = $img_state->{info}->{ImageWidth};
     my $height = $img_state->{info}->{ImageHeight};
-    push @out, "<img src=\"$img_url\" title=\"$img_name\" alt=\"$img_name\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
+    my $alt_text = ($img_state->{info}->{AltTextAccessibility}
+        ? $img_state->{info}->{AltTextAccessibility}
+        : ($img_state->{info}->{Title}
+            ? $img_state->{info}->{Title}
+            : $img_name)
+    );
+    push @out, "<img src=\"$img_url\" title=\"$alt_text\" alt=\"$alt_text\" style=\"width: ${width}px; height: ${height}px;\"/>\n";
     push @out, "<p class=\"caption\" id=\"caption\">$caption</p>\n";
     push @out, "</div>\n";
     return join('', @out);
