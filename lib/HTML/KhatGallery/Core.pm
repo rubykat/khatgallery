@@ -943,16 +943,16 @@ sub make_thumbnail {
     if ($img_state->{cur_img} =~ /\.gif$/)
     {
 	# in case this is an animated gif, get the first frame only
-        $command = sprintf('convert -geometry "%d@>" %s %s',
-            $self->{pixelcount},
+        $command = sprintf('magick %s -resize "%d@>" %s',
             $img_state->{abs_img}[0],
+            $self->{pixelcount},
             $thumb_file);
     }
     else
     {
-        $command = sprintf('convert -geometry "%d@>" %s %s',
-            $self->{pixelcount},
+        $command = sprintf('magick %s -resize "%d@>" %s',
             $img_state->{abs_img},
+            $self->{pixelcount},
             $thumb_file);
     }
     system($command) == 0
